@@ -162,7 +162,7 @@ class EngageResponse(object):
 
         self.job_id = self.result('JOB_ID')
 
-        self.SUCCESS = False if res.lower() == 'false' else True
+        self.SUCCESS = True if res.lower() == 'true' or res.lower() == 'success' else False
 
     def __str__(self):
         return self.xml_response
