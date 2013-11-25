@@ -1,0 +1,3 @@
+recursive-include silverpoppy *
+global-exclude *pyc
+include README.md
