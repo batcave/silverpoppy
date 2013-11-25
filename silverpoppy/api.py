@@ -13,7 +13,8 @@ from lxml import etree as ET
 
 OUTPATH = tempfile.gettempdir() + '/'
 
-logger = logging.getLogger(__name__).addHandler(logging.NullHandler())
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 class Engage(object):
     def __init__(self, api_url, username=None, password=None, ftp_url=None, *args, **kwargs):
