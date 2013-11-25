@@ -13,19 +13,10 @@ from lxml import etree as ET
 
 OUTPATH = tempfile.gettempdir() + '/'
 
-class Logging(object):
-    def __init__(self, *args, **kwargs):
-        super(Logging, self).__init__(*args, **kwargs)
-        logging.basicConfig(level='INFO',
-                            format='%(asctime)s | %(levelname)s - %(message)s',
-                            stream=sys.stdout)
-        self.logger = logging.getLogger(type(self).__name__)
+logger = logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-
-class Engage(Logging):
+class Engage(object):
     def __init__(self, api_url, username=None, password=None, ftp_url=None, *args, **kwargs):
-
-        super(Engage, self).__init__(*args, **kwargs)
 
         self.api_url = api_url
         self.username = username
@@ -61,7 +52,7 @@ class Engage(Logging):
 
         if res:
             self.jsessionid = root.xpath('/Envelope/Body/RESULT/SESSIONID/text()')[0]
-            self.logger.info("Engage logged in, jsessionid:{0}".format(self.jsessionid))
+            logger.info("Engage logged in, jsessionid:{0}".format(self.jsessionid))
 
         return res
 
@@ -77,7 +68,7 @@ class Engage(Logging):
         resp = self.xml_engage_request(xml_logout)
 
         if resp.SUCCESS:
-            self.logger.info("Engage logged out, jsessionid:{0}".format(self.jsessionid))
+            logger.info("Engage logged out, jsessionid:{0}".format(self.jsessionid))
             self.jsessionid = None
 
         return resp.SUCCESS
@@ -99,7 +90,7 @@ class Engage(Logging):
 
     def ftp_putfile(self, filename):
         if not os.path.isfile(filename):
-            self.logger.error("ftp_putfile: {0} not found.".format(filename))
+            logger.error("ftp_putfile: {0} not found.".format(filename))
             return False
 
         with open(filename, 'r') as f:
@@ -110,11 +101,11 @@ class Engage(Logging):
 
             ftp.login(self.username, self.password)
             ftp.cwd('upload')
-            fname = filename[((filename.rfind('/'))+1):]
+            fname = filename[((filename.rfind('/')) + 1):]
             ftp.storlines('STOR ' + fname, f)
             ftp.quit()
 
-        self.logger.debug("ftp_putfile: stored {0}".format(filename))
+        logger.debug("ftp_putfile: stored {0}".format(filename))
 
         return True
 
@@ -129,10 +120,10 @@ class Engage(Logging):
             ftp.login(self.username, self.password)
             #ftp.cwd('upload')
             #fname = filename[((filename.rfind('/'))+1):]
-            ftp.retrlines('RETR ' + filename, lambda s, w=of.write: w(s+'\n'))
+            ftp.retrlines('RETR ' + filename, lambda s, w=of.write: w(s + '\n'))
             ftp.quit()
 
-        self.logger.debug("ftp_getfile: retrieved {0}".format(filename))
+        logger.debug("ftp_getfile: retrieved {0}".format(filename))
 
         return True
 
@@ -141,7 +132,7 @@ class Engage(Logging):
         api_url, xml, are required
         returns the silverpop response (xml)
         """
-        self.logger.debug('xml: %s' % xml)
+        logger.debug('xml: %s' % xml)
 
         headers = {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
         xml = urllib.urlencode({'xml': xml})
@@ -150,13 +141,12 @@ class Engage(Logging):
         handle = urllib2.urlopen(request)
 
         response = handle.read()
-        self.logger.debug('Silverpop API response: %s' % response)
+        logger.debug('Silverpop API response: %s' % response)
         return response
 
 
-class EngageResponse(Logging):
+class EngageResponse(object):
     def __init__(self, xml_resp, callname, engage, *args, **kwargs):
-        super(EngageResponse, self).__init__(*args, **kwargs)
 
         self.xml_response = xml_resp
         self.callname = callname
@@ -219,17 +209,16 @@ class EngageResponse(Logging):
     def handle_job(self):
             if self.SUCCESS:
                 status_msg ="{0}: JOB_ID: {1}, STATUS: {2}"
-                self.logger.info(
+                logger.info(
                     "{0}: API called, JOB_ID: {1}".format(self.callname, self.job_id))
 
                 while self.get_job_status() in ['WAITING', 'RUNNING']:
-                    self.logger.info(status_msg.format(self.callname, self.job_id, self.job_status))
+                    logger.info(status_msg.format(self.callname, self.job_id, self.job_status))
                     time.sleep(self.job_polling_seconds)
 
-                self.logger.info(status_msg.format(self.callname, self.job_id, self.job_status))
+                logger.info(status_msg.format(self.callname, self.job_id, self.job_status))
             else:
                 err_msg = "{0}: API call failed."
-                self.logger.error(err_msg)
+                logger.error(err_msg)
                 self._writeout(OUTPATH + '{0}_JOBID{1}.err'.format(self.callname, self.job_id))
                 raise ValueError(err_msg)
-
