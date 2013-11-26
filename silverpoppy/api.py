@@ -16,6 +16,7 @@ OUTPATH = tempfile.gettempdir() + '/'
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+
 class Engage(object):
     def __init__(self, api_url, username=None, password=None, ftp_url=None, *args, **kwargs):
 
@@ -85,7 +86,11 @@ class Engage(object):
 
         callname = root.xpath('name(/Envelope/Body/*[1])')
 
+        logger.debug("XML request for API call to '{0}':\n{1}".format(callname, xml_req))
+
         xml_resp = self._xml_request(api_url_jsid, xml_req)
+
+        logger.debug("XML response for API call to '{0}':\n{1}".format(callname, xml_resp))
 
         return EngageResponse(xml_resp, callname, self)
 
@@ -133,7 +138,6 @@ class Engage(object):
         api_url, xml, are required
         returns the silverpop response (xml)
         """
-        logger.debug('xml: %s' % xml)
 
         headers = {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
         xml = urllib.urlencode({'xml': xml})
@@ -142,7 +146,6 @@ class Engage(object):
         handle = urllib2.urlopen(request)
 
         response = handle.read()
-        logger.debug('Silverpop API response: %s' % response)
         return response
 
 
@@ -209,7 +212,7 @@ class EngageResponse(object):
 
     def handle_job(self):
             if self.SUCCESS:
-                status_msg ="{0}: JOB_ID: {1}, STATUS: {2}"
+                status_msg = "{0}: JOB_ID: {1}, STATUS: {2}"
                 logger.info(
                     "{0}: API called, JOB_ID: {1}".format(self.callname, self.job_id))
 
