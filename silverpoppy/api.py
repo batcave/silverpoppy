@@ -14,7 +14,14 @@ from lxml import etree as ET
 OUTPATH = tempfile.gettempdir() + '/'
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
+if sys.version_info < (2, 7):
+    class NullHandler(logging.Handler):
+        def emit(self, record):
+            pass
+else:
+    from logging import NullHandler
+
+logger.addHandler(NullHandler())
 
 
 class Engage(object):
