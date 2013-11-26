@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='silverpoppy',
-    version='0.5.0',
+    version='0.6.0',
     description='Minimalist Silverpop Engage API library.',
     long_description=(open('README.md').read()),
     url='https://github.com/kevinwaddle/silverpoppy',
