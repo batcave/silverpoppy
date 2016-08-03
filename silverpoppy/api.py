@@ -101,10 +101,11 @@ class Engage(object):
 
         return EngageResponse(xml_resp, callname, self)
 
-    def ftp_putfile(self, filename):
+    def ftp_putfile(self, filename, to='upload', as_filename=None):
+        result = None
         if not os.path.isfile(filename):
             logger.error("ftp_putfile: {0} not found.".format(filename))
-            return False
+            return result
 
         with open(filename, 'r') as f:
             if self.ftp_url:
@@ -113,14 +114,20 @@ class Engage(object):
                 raise ValueError("Engage.ftp_putfile() requires ftp_url be set.")
 
             ftp.login(self.username, self.password)
-            ftp.cwd('upload')
-            fname = filename[((filename.rfind('/')) + 1):]
-            ftp.storlines('STOR ' + fname, f)
+
+            ftp.cwd(to)
+
+            if not as_filename:
+                fname = filename[((filename.rfind('/')) + 1):]
+            else:
+                fname = as_filename
+
+            result = ftp.storlines('STOR ' + fname, f)
             ftp.quit()
 
         logger.debug("ftp_putfile: stored {0}".format(filename))
 
-        return True
+        return result
 
     def ftp_getfile(self, filename, outfilepath):
         if self.ftp_url:
