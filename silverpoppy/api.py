@@ -5,6 +5,7 @@ import tempfile
 import time
 import urllib
 import urllib2
+import StringIO
 from ftplib import FTP
 from xml.sax.saxutils import escape
 
@@ -101,10 +102,11 @@ class Engage(object):
 
         return EngageResponse(xml_resp, callname, self)
 
-    def ftp_putfile(self, filename):
+    def ftp_putfile(self, filename, to='upload', as_filename=None, move_to=None):
+        result = None
         if not os.path.isfile(filename):
             logger.error("ftp_putfile: {0} not found.".format(filename))
-            return False
+            return result
 
         with open(filename, 'r') as f:
             if self.ftp_url:
@@ -113,14 +115,28 @@ class Engage(object):
                 raise ValueError("Engage.ftp_putfile() requires ftp_url be set.")
 
             ftp.login(self.username, self.password)
-            ftp.cwd('upload')
-            fname = filename[((filename.rfind('/')) + 1):]
-            ftp.storlines('STOR ' + fname, f)
+
+            ftp.cwd(to)
+
+            if not as_filename:
+                fname = filename[((filename.rfind('/')) + 1):]
+            else:
+                fname = as_filename
+
+            result = ftp.storlines('STOR ' + fname, f)
+            logger.debug("ftp_putfile: stored {0}{1} ({2})".format(filename,
+                                                                   " as {0}".format(fname) if as_filename else "",
+                                                                   result))
+
+            if move_to:
+                rfrom = os.path.join(to, fname)
+                rto = os.path.join(move_to, fname)
+                rename = ftp.rename(rfrom, rto)
+                logger.debug("ftp_putfile: moved {0} to {1} ({2})".format(rfrom, rto, rename))
+
             ftp.quit()
 
-        logger.debug("ftp_putfile: stored {0}".format(filename))
-
-        return True
+        return result
 
     def ftp_getfile(self, filename, outfilepath):
         if self.ftp_url:
@@ -128,17 +144,23 @@ class Engage(object):
         else:
             raise ValueError("Engage.ftp_getfile() requires ftp_url be set.")
 
+        buf = StringIO.StringIO()
+        ftp = FTP(self.ftp_url)
+        ftp.login(self.username, self.password)
+        #ftp.cwd('upload')
+        #fname = filename[((filename.rfind('/'))+1):]
+        res = ftp.retrlines('RETR ' + filename, lambda s, w=buf.write: w(s + '\n'))
+
+        ftp.quit()
+
         with open(outfilepath, 'w') as of:
-            ftp = FTP(self.ftp_url)
-            ftp.login(self.username, self.password)
-            #ftp.cwd('upload')
-            #fname = filename[((filename.rfind('/'))+1):]
-            ftp.retrlines('RETR ' + filename, lambda s, w=of.write: w(s + '\n'))
-            ftp.quit()
+            of.writelines(buf.getvalue())
+
+        buf.close()
 
         logger.debug("ftp_getfile: retrieved {0}".format(filename))
 
-        return True
+        return res
 
     def _xml_request(self, api_url, xml):
         """submit a custom xml request
