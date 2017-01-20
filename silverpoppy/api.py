@@ -14,7 +14,7 @@ from lxml import etree as ET
 
 OUTPATH = tempfile.gettempdir() + '/'
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('silverpoppy.api')
 if sys.version_info < (2, 7):
     class NullHandler(logging.Handler):
         def emit(self, record):
