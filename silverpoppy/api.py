@@ -6,7 +6,7 @@ import time
 import urllib
 import urllib2
 import StringIO
-from ftplib import FTP
+from ftplib import FTP, all_errors
 from xml.sax.saxutils import escape
 
 from lxml import etree as ET
@@ -114,7 +114,19 @@ class Engage(object):
             else:
                 raise ValueError("Engage.ftp_putfile() requires ftp_url be set.")
 
-            ftp.login(self.username, self.password)
+            # Sometimes login fails on valid credentials
+            # Going to try twice before giving up.
+            login_errors = {}
+            resp = '000'
+            while resp[0] != '2':  # '230' or '202' are logged in
+                try:
+                    resp = ftp.login(self.username, self.password)
+                except Exception, e:
+                    if e not in all_errors:  # This is not an ftplib issue, raise it
+                        raise e
+                    if e in login_errors:  # Encountered this once already, give up
+                        raise e
+                    login_errors[e] = str(e)
 
             ftp.cwd(to)
 
