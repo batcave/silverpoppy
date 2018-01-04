@@ -109,25 +109,10 @@ class Engage(object):
             return result
 
         with open(filename, 'r') as f:
-            if self.ftp_url:
-                ftp = FTP(self.ftp_url)
-            else:
+            if not self.ftp_url:
                 raise ValueError("Engage.ftp_putfile() requires ftp_url be set.")
 
-            # Sometimes login fails on valid credentials
-            # Going to try twice before giving up.
-            login_errors = {}
-            resp = '000'
-            while resp[0] != '2':  # '230' or '202' are logged in
-                try:
-                    resp = ftp.login(self.username, self.password)
-                except Exception, e:
-                    if e not in all_errors:  # This is not an ftplib issue, raise it
-                        raise e
-                    if e in login_errors:  # Encountered this once already, give up
-                        raise e
-                    login_errors[e] = str(e)
-
+            ftp = self._ftp_login()
             ftp.cwd(to)
 
             if not as_filename:
@@ -151,14 +136,11 @@ class Engage(object):
         return result
 
     def ftp_getfile(self, filename, outfilepath):
-        if self.ftp_url:
-            ftp = FTP(self.ftp_url)
-        else:
+        if not self.ftp_url:
             raise ValueError("Engage.ftp_getfile() requires ftp_url be set.")
 
         buf = StringIO.StringIO()
-        ftp = FTP(self.ftp_url)
-        ftp.login(self.username, self.password)
+        ftp = self._ftp_login()
         #ftp.cwd('upload')
         #fname = filename[((filename.rfind('/'))+1):]
         res = ftp.retrlines('RETR ' + filename, lambda s, w=buf.write: w(s + '\n'))
@@ -173,6 +155,30 @@ class Engage(object):
         logger.debug("ftp_getfile: retrieved {0}".format(filename))
 
         return res
+
+    def _ftp_login(self):
+        # Sometimes login fails on valid credentials
+        # Going to try twice before giving up.
+        login_errors = {}
+        resp = '000'
+        logger.info("Logging into Engage FTP server.")
+        while resp[0] != '2':  # '230' or '202' are logged in
+            try:
+                ftp = FTP(self.ftp_url)
+                resp = ftp.login('adfsf', self.password)
+            except Exception, e:
+                # This is not an ftplib issue, raise it
+                # if e not in all_errors:
+                #     raise e
+                # Give up if this has been encounted once already.
+                # Or if more than 5 times going around and around.
+                if str(e) in login_errors or len(login_errors.items()) > 5:
+                    logger.error("Failed to login to Engage FTP server.")
+                    raise e
+                logger.warn("An Exception occured trying to log into the Engage FTP server. Will try one more time on it. ({})".format(e))
+                login_errors[str(e)] = e
+        logger.info("Login to Engage FTP server successful.")
+        return ftp
 
     def _xml_request(self, api_url, xml):
         """submit a custom xml request
