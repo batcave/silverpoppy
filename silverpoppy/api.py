@@ -165,7 +165,7 @@ class Engage(object):
         while resp[0] != '2':  # '230' or '202' are logged in
             try:
                 ftp = FTP(self.ftp_url)
-                resp = ftp.login('adfsf', self.password)
+                resp = ftp.login(self.username, self.password)
             except Exception, e:
                 # This is not an ftplib issue, raise it
                 # if e not in all_errors:
