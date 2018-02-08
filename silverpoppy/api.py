@@ -167,9 +167,6 @@ class Engage(object):
                 ftp = FTP(self.ftp_url)
                 resp = ftp.login(self.username, self.password)
             except Exception, e:
-                # This is not an ftplib issue, raise it
-                # if e not in all_errors:
-                #     raise e
                 # Give up if this has been encounted once already.
                 # Or if more than 5 times going around and around.
                 if str(e) in login_errors or len(login_errors.items()) > 5:
@@ -177,6 +174,7 @@ class Engage(object):
                     raise e
                 logger.warn("An Exception occured trying to log into the Engage FTP server. Will try one more time on it. ({})".format(e))
                 login_errors[str(e)] = e
+                time.sleep(5)
         logger.info("Login to Engage FTP server successful.")
         return ftp
 
