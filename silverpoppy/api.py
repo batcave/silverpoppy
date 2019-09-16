@@ -3,9 +3,8 @@ import logging
 import os
 import tempfile
 import time
-import urllib
-import urllib2
-import StringIO
+import urllib.request, urllib.parse
+import io
 from ftplib import FTP, all_errors
 from xml.sax.saxutils import escape
 
@@ -139,7 +138,7 @@ class Engage(object):
         if not self.ftp_url:
             raise ValueError("Engage.ftp_getfile() requires ftp_url be set.")
 
-        buf = StringIO.StringIO()
+        buf = io.StringIO()
         ftp = self._ftp_login()
         #ftp.cwd('upload')
         #fname = filename[((filename.rfind('/'))+1):]
@@ -166,10 +165,10 @@ class Engage(object):
             try:
                 ftp = FTP(self.ftp_url)
                 resp = ftp.login(self.username, self.password)
-            except Exception, e:
+            except Exception as e:
                 # Give up if this has been encounted once already.
                 # Or if more than 5 times going around and around.
-                if str(e) in login_errors or len(login_errors.items()) > 5:
+                if str(e) in login_errors or len(list(login_errors.items())) > 5:
                     logger.error("Failed to login to Engage FTP server.")
                     raise e
                 logger.warn("An Exception occured trying to log into the Engage FTP server. Will try one more time on it. ({})".format(e))
@@ -185,10 +184,10 @@ class Engage(object):
         """
 
         headers = {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
-        xml = urllib.urlencode({'xml': xml})
-        request = urllib2.Request(api_url, xml, headers)
+        xml = urllib.parse.urlencode({'xml': xml})
+        request = urllib.request.Request(api_url, xml, headers)
 
-        handle = urllib2.urlopen(request)
+        handle = urllib.request.urlopen(request)
 
         response = handle.read()
         return response

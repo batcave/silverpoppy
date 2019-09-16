@@ -1,1 +1,1 @@
-from silverpoppy import *
+from .silverpoppy import *
