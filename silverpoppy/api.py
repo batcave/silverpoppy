@@ -1,6 +1,5 @@
 import sys
 import logging
-import os
 import tempfile
 import time
 import urllib.request, urllib.parse
@@ -9,6 +8,7 @@ from ftplib import FTP, all_errors
 from xml.sax.saxutils import escape
 
 from lxml import etree as ET
+from path import Path
 
 
 OUTPATH = tempfile.gettempdir() + '/'
@@ -103,32 +103,34 @@ class Engage(object):
 
     def ftp_putfile(self, filename, to='upload', as_filename=None, move_to=None):
         result = None
-        if not os.path.isfile(filename):
-            logger.error("ftp_putfile: {0} not found.".format(filename))
+        filename = Path(filename)
+        
+        if not filename.isfile():
+            logger.error(f"ftp_putfile: {filename} not found.")
             return result
 
-        with open(filename, 'r') as f:
+        with filename.open('r') as f:
             if not self.ftp_url:
                 raise ValueError("Engage.ftp_putfile() requires ftp_url be set.")
 
             ftp = self._ftp_login()
             ftp.cwd(to)
 
-            if not as_filename:
-                fname = filename[((filename.rfind('/')) + 1):]
-            else:
+            if as_filename:
                 fname = as_filename
+            else:
+                fname = filename[filename.rfind('/') + 1:]
 
-            result = ftp.storlines('STOR ' + fname, f)
+            result = ftp.storlines(f'STOR {fname}', f)
             logger.debug("ftp_putfile: stored {0}{1} ({2})".format(filename,
-                                                                   " as {0}".format(fname) if as_filename else "",
+                                                                   f" as {fname}" if as_filename else "",
                                                                    result))
 
             if move_to:
-                rfrom = os.path.join(to, fname)
-                rto = os.path.join(move_to, fname)
+                rfrom = Path(to) / fname
+                rto = Path(move_to) / fname
                 rename = ftp.rename(rfrom, rto)
-                logger.debug("ftp_putfile: moved {0} to {1} ({2})".format(rfrom, rto, rename))
+                logger.debug(f"ftp_putfile: moved {rfrom} to {rto} ({rename})")
 
             ftp.quit()
 
